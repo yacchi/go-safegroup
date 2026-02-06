@@ -62,7 +62,10 @@ func main() {
 ## API 概要
 
 - コンストラクタ: `WithContext`
+- プリセット: `NewGroupPreset`, `GroupPreset.Group`
 - タスク API: `Go`, `GoLabel`, `TryGo`, `TryGoLabel`, `SetLimit`
+- 非同期起動 API: `GroupPreset.Go`, `GroupPreset.GoLabel`
+- パッケージヘルパー API: `DefaultPreset`, `safegroup.Go`, `safegroup.GoLabel`
 - 結果取得 API: `Wait`, `Errors`, `Panics`
 - パニックヘルパー: `IsPanic`, `AsPanic`, `AllPanics`
 
@@ -77,6 +80,43 @@ func main() {
 - `CaptureStack(true)`
 
 `WithContext(...)` のオプションで動作を変更できます。
+
+## GroupPreset
+
+同じオプション設定を使い回したい場合は `GroupPreset` を使います。
+
+```go
+preset := safegroup.NewGroupPreset(
+	safegroup.OnError(func(err error) { log.Printf("task error: %v", err) }),
+	safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
+)
+
+preset.Go(func() error {
+	// 非同期処理
+	return nil
+})
+
+group, groupCtx := preset.Group(ctx)
+group.Go(func(ctx context.Context) error {
+	_ = groupCtx
+	return nil
+})
+_ = group.Wait()
+```
+
+最も簡易に非同期起動したい場合は、パッケージレベルのヘルパーを使えます:
+
+```go
+safegroup.DefaultPreset.
+	WithOptions(
+		safegroup.OnError(func(err error) { log.Printf("task error: %v", err) }),
+		safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
+	)
+
+safegroup.Go(func() error {
+	return nil
+})
+```
 
 ## PanicError
 

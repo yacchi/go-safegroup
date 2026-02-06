@@ -62,7 +62,10 @@ func main() {
 ## API Overview
 
 - Constructor: `WithContext`
+- Preset: `NewGroupPreset`, `GroupPreset.Group`
 - Task APIs: `Go`, `GoLabel`, `TryGo`, `TryGoLabel`, `SetLimit`
+- Detached task APIs: `GroupPreset.Go`, `GroupPreset.GoLabel`
+- Package helper APIs: `DefaultPreset`, `safegroup.Go`, `safegroup.GoLabel`
 - Result APIs: `Wait`, `Errors`, `Panics`
 - Panic helpers: `IsPanic`, `AsPanic`, `AllPanics`
 
@@ -77,6 +80,43 @@ Canonical API docs are published on `pkg.go.dev`:
 - `CaptureStack(true)`
 
 Use options in `WithContext(...)` to change behavior.
+
+## GroupPreset
+
+Use `GroupPreset` when you want to reuse the same options across calls.
+
+```go
+preset := safegroup.NewGroupPreset(
+	safegroup.OnError(func(err error) { log.Printf("task error: %v", err) }),
+	safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
+)
+
+preset.Go(func() error {
+	// detached async work
+	return nil
+})
+
+group, groupCtx := preset.Group(ctx)
+group.Go(func(ctx context.Context) error {
+	_ = groupCtx
+	return nil
+})
+_ = group.Wait()
+```
+
+For the most minimal detached use, call package-level helpers:
+
+```go
+safegroup.DefaultPreset.
+	WithOptions(
+		safegroup.OnError(func(err error) { log.Printf("task error: %v", err) }),
+		safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
+	)
+
+safegroup.Go(func() error {
+	return nil
+})
+```
 
 ## PanicError
 
