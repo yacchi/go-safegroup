@@ -18,7 +18,5 @@ jobs:
       - name: Run release-please
         uses: googleapis/release-please-action@v4
         with:
-          release-type: go
-          initial-version: 0.1.0
-          bump-minor-pre-major: true
-          bump-patch-for-minor-pre-major: true
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
