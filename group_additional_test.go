@@ -181,3 +181,85 @@ func TestGoLabelReturnsOnContextCancelWhileWaitingLimit(t *testing.T) {
 	default:
 	}
 }
+
+func TestWaitCanBeCalledMultipleTimes(t *testing.T) {
+	group, _ := WithContext(context.Background())
+	taskErr := errors.New("task failed")
+	group.Go(func(context.Context) error {
+		return taskErr
+	})
+
+	first := group.Wait()
+	second := group.Wait()
+	if first == nil || second == nil {
+		t.Fatalf("expected non-nil errors, got first=%v second=%v", first, second)
+	}
+	if first.Error() != second.Error() {
+		t.Fatalf("expected equivalent results, got first=%q second=%q", first.Error(), second.Error())
+	}
+}
+
+func TestErrorsAndPanicsSnapshotBeforeWait(t *testing.T) {
+	group, _ := WithContext(context.Background())
+	release := make(chan struct{})
+	group.Go(func(context.Context) error {
+		<-release
+		return errors.New("done")
+	})
+
+	if got := group.Errors(); len(got) != 0 {
+		t.Fatalf("expected no collected errors before completion, got %d", len(got))
+	}
+	if got := group.Panics(); len(got) != 0 {
+		t.Fatalf("expected no collected panics before completion, got %d", len(got))
+	}
+
+	close(release)
+	if err := group.Wait(); err == nil {
+		t.Fatal("expected joined error")
+	}
+	if got := group.Errors(); len(got) != 1 {
+		t.Fatalf("expected one collected error after Wait, got %d", len(got))
+	}
+}
+
+func TestErrorsKeepAppendOrderWithMixedFailures(t *testing.T) {
+	group, _ := WithContext(
+		context.Background(),
+		CancelOnError(false),
+		CancelOnPanic(false),
+		CaptureStack(false),
+	)
+	group.SetLimit(1)
+
+	firstErr := errors.New("first")
+	thirdErr := errors.New("third")
+	group.GoLabel("err-1", func(context.Context) error {
+		return firstErr
+	})
+	group.GoLabel("panic-2", func(context.Context) error {
+		panic("second")
+	})
+	group.GoLabel("err-3", func(context.Context) error {
+		return thirdErr
+	})
+
+	if err := group.Wait(); err == nil {
+		t.Fatal("expected joined error")
+	}
+
+	failures := group.Errors()
+	if len(failures) != 3 {
+		t.Fatalf("expected 3 failures, got %d", len(failures))
+	}
+	if !errors.Is(failures[0], firstErr) {
+		t.Fatalf("unexpected first failure: %v", failures[0])
+	}
+	panicErr, ok := failures[1].(*PanicError)
+	if !ok || panicErr.Label != "panic-2" {
+		t.Fatalf("unexpected second failure: %T %v", failures[1], failures[1])
+	}
+	if !errors.Is(failures[2], thirdErr) {
+		t.Fatalf("unexpected third failure: %v", failures[2])
+	}
+}

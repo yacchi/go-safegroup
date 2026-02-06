@@ -90,6 +90,9 @@ Use options in `WithContext(...)` to change behavior.
 
 - `runtime.Goexit` is not supported because it is not recoverable with `recover`.
 - This package does not log by itself. Use `OnError` / `OnPanic` hooks for metrics or logging.
+- `GoLabel` with `SetLimit` waits for a slot or group context cancellation. If canceled while waiting, the task is not started.
+- `Wait` can be called multiple times and returns an equivalent failure snapshot.
+- Panics inside `OnError` / `OnPanic` hooks are not recovered by `safegroup`.
 
 ## Task Runner
 

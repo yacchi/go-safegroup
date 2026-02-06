@@ -37,6 +37,8 @@ func collectPanics(err error, result *[]*PanicError) {
 
 	if panicErr, ok := err.(*PanicError); ok {
 		*result = append(*result, panicErr)
+		// Keep traversing unwrap chains: PanicError may wrap another error tree
+		// that contains additional PanicError values.
 	}
 
 	type manyUnwrapper interface {

@@ -131,6 +131,8 @@ func (g *Group) SetLimit(limit int) {
 // as errors.Join.
 //
 // It returns nil when no task failed and no task panicked.
+// Wait may be called multiple times; each call returns an equivalent snapshot
+// of collected failures.
 func (g *Group) Wait() error {
 	g.waitGroup.Wait()
 	g.cancel()

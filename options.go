@@ -50,6 +50,8 @@ func CaptureStack(enabled bool) Option {
 }
 
 // OnPanic registers a hook called when a task panic is recovered.
+//
+// Panics in the hook itself are not recovered by Group.
 func OnPanic(fn func(*PanicError)) Option {
 	return func(cfg *config) {
 		if fn == nil {
@@ -60,6 +62,8 @@ func OnPanic(fn func(*PanicError)) Option {
 }
 
 // OnError registers a hook called when a task returns a non-nil error.
+//
+// Panics in the hook itself are not recovered by Group.
 func OnError(fn func(error)) Option {
 	return func(cfg *config) {
 		if fn == nil {

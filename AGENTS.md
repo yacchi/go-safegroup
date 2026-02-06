@@ -40,6 +40,7 @@ This file applies to the entire repository.
 - All exported types/functions/methods must have GoDoc comments.
 - Keep README concise and defer canonical API details to `pkg.go.dev`.
 - Reflect behavior changes in both GoDoc and README when needed.
+- When `README.md` is updated, update `README_ja.md` with equivalent content in the same change.
 
 ## Commit Messages
 - All commit messages must be written in English.
