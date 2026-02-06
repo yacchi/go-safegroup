@@ -56,6 +56,8 @@ func (g *Group) Go(task func(context.Context) error) {
 // GoLabel starts a labeled task.
 //
 // The label is copied into PanicError when the task panics.
+// When a limit is set with SetLimit, this method blocks until a slot is
+// available.
 func (g *Group) GoLabel(label string, task func(context.Context) error) {
 	if task == nil {
 		panic("safegroup: nil task")
@@ -98,6 +100,7 @@ func (g *Group) TryGoLabel(label string, task func(context.Context) error) bool 
 // SetLimit sets the maximum number of active tasks.
 //
 // A zero limit removes the limit.
+// Call SetLimit only before starting tasks or after Wait has returned.
 func (g *Group) SetLimit(limit int) {
 	if limit < 0 {
 		panic("safegroup: negative limit")

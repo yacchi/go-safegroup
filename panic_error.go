@@ -42,6 +42,11 @@ func (pe *PanicError) Unwrap() error {
 //
 // `%v` and `%s` print the summary text. `%+v` also prints the stack trace.
 func (pe *PanicError) Format(state fmt.State, verb rune) {
+	if pe == nil {
+		_, _ = io.WriteString(state, "<nil>")
+		return
+	}
+
 	switch verb {
 	case 'v':
 		if state.Flag('+') {
