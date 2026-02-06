@@ -133,6 +133,8 @@ func (g *Group) SetLimit(limit int) {
 // It returns nil when no task failed and no task panicked.
 // Wait may be called multiple times; each call returns an equivalent snapshot
 // of collected failures.
+// Wait cancels the group context before returning. Tasks started after a Wait
+// call receive the already-canceled context.
 func (g *Group) Wait() error {
 	g.waitGroup.Wait()
 	g.cancel()

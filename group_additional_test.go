@@ -263,3 +263,68 @@ func TestErrorsKeepAppendOrderWithMixedFailures(t *testing.T) {
 		t.Fatalf("unexpected third failure: %v", failures[2])
 	}
 }
+
+func TestSetLimitNegativePanics(t *testing.T) {
+	group, _ := WithContext(context.Background())
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		if got, ok := recovered.(string); !ok || got != "safegroup: negative limit" {
+			t.Fatalf("unexpected panic: %v", recovered)
+		}
+	}()
+
+	group.SetLimit(-1)
+}
+
+func TestGoNilTaskPanics(t *testing.T) {
+	group, _ := WithContext(context.Background())
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		if got, ok := recovered.(string); !ok || got != "safegroup: nil task" {
+			t.Fatalf("unexpected panic: %v", recovered)
+		}
+	}()
+
+	group.Go(nil)
+}
+
+func TestTryGoNilTaskPanics(t *testing.T) {
+	group, _ := WithContext(context.Background())
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		if got, ok := recovered.(string); !ok || got != "safegroup: nil task" {
+			t.Fatalf("unexpected panic: %v", recovered)
+		}
+	}()
+
+	group.TryGo(nil)
+}
+
+func TestPanicErrorNilReceiverMethods(t *testing.T) {
+	var panicErr *PanicError
+
+	if got := panicErr.Error(); got != "<nil>" {
+		t.Fatalf("unexpected Error output: %q", got)
+	}
+	if got := panicErr.Unwrap(); got != nil {
+		t.Fatalf("unexpected Unwrap output: %v", got)
+	}
+}
+
+func TestAllPanicsNil(t *testing.T) {
+	if got := AllPanics(nil); got != nil {
+		t.Fatalf("expected nil, got %v", got)
+	}
+}
