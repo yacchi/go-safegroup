@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestSetLimitZeroRemovesLimit(t *testing.T) {
@@ -136,5 +137,47 @@ func TestPanicErrorFormatNilReceiver(t *testing.T) {
 	}
 	if got := fmt.Sprintf("%+v", panicErr); got != "<nil>" {
 		t.Fatalf("unexpected %%+v output: %q", got)
+	}
+}
+
+func TestGoLabelReturnsOnContextCancelWhileWaitingLimit(t *testing.T) {
+	group, _ := WithContext(context.Background())
+	group.SetLimit(1)
+
+	panicNow := make(chan struct{})
+	started := make(chan struct{})
+	group.Go(func(context.Context) error {
+		close(started)
+		<-panicNow
+		panic("boom")
+	})
+	<-started
+
+	blockedReturned := make(chan struct{})
+	secondRan := make(chan struct{})
+	go func() {
+		group.GoLabel("blocked", func(context.Context) error {
+			close(secondRan)
+			return nil
+		})
+		close(blockedReturned)
+	}()
+
+	close(panicNow)
+
+	select {
+	case <-blockedReturned:
+	case <-time.After(1 * time.Second):
+		t.Fatal("GoLabel did not return after group context cancellation")
+	}
+
+	if err := group.Wait(); AsPanic(err) == nil {
+		t.Fatalf("expected panic error, got: %v", err)
+	}
+
+	select {
+	case <-secondRan:
+		t.Fatal("second task should not run when canceled while waiting for limit")
+	default:
 	}
 }

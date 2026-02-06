@@ -57,13 +57,24 @@ func (g *Group) Go(task func(context.Context) error) {
 //
 // The label is copied into PanicError when the task panics.
 // When a limit is set with SetLimit, this method blocks until a slot is
-// available.
+// available or the group context is canceled. If the context is canceled
+// while waiting, the task is not started.
 func (g *Group) GoLabel(label string, task func(context.Context) error) {
 	if task == nil {
 		panic("safegroup: nil task")
 	}
 	if g.sem != nil {
-		g.sem <- token{}
+		select {
+		case g.sem <- token{}:
+			select {
+			case <-g.ctx.Done():
+				<-g.sem
+				return
+			default:
+			}
+		case <-g.ctx.Done():
+			return
+		}
 	}
 	g.waitGroup.Add(1)
 	go g.runTask(label, task)
