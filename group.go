@@ -181,6 +181,16 @@ func (g *Group) runTask(label string, task func(context.Context) error) {
 		}()
 	}
 
+	if err := g.runTaskBody(label, task); err != nil {
+		g.appendError(err)
+		if g.cfg.cancelOnError {
+			g.cancel()
+		}
+		g.cfg.onError(err)
+	}
+}
+
+func (g *Group) runTaskBody(label string, task func(context.Context) error) (taskErr error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			panicError := &PanicError{
@@ -198,13 +208,7 @@ func (g *Group) runTask(label string, task func(context.Context) error) {
 		}
 	}()
 
-	if err := task(g.ctx); err != nil {
-		g.appendError(err)
-		if g.cfg.cancelOnError {
-			g.cancel()
-		}
-		g.cfg.onError(err)
-	}
+	return task(g.ctx)
 }
 
 func (g *Group) appendError(err error) {

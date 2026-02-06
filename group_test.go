@@ -173,3 +173,40 @@ func TestHooksCalledForPanicAndError(t *testing.T) {
 		t.Fatalf("expected one error hook call, got %d", got)
 	}
 }
+
+func TestOnErrorPanicIsNotRecovered(t *testing.T) {
+	group, _ := WithContext(
+		context.Background(),
+		CancelOnError(false),
+		CancelOnPanic(false),
+		OnError(func(error) { panic("hook panic") }),
+	)
+
+	taskErr := errors.New("task failure")
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		if got, ok := recovered.(string); !ok || got != "hook panic" {
+			t.Fatalf("unexpected panic: %v", recovered)
+		}
+
+		failures := group.Errors()
+		if len(failures) != 1 {
+			t.Fatalf("expected only task error to be recorded, got %d", len(failures))
+		}
+		if !errors.Is(failures[0], taskErr) {
+			t.Fatalf("unexpected recorded failure: %v", failures[0])
+		}
+		if got := group.Panics(); len(got) != 0 {
+			t.Fatalf("expected no recorded panic errors, got %d", len(got))
+		}
+	}()
+
+	group.waitGroup.Add(1)
+	group.runTask("worker-a", func(context.Context) error {
+		return taskErr
+	})
+}
