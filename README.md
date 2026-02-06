@@ -1,5 +1,11 @@
 # safegroup
 
+[![CI](https://github.com/yacchi/go-safegroup/actions/workflows/ci.yml/badge.svg)](https://github.com/yacchi/go-safegroup/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/yacchi/go-safegroup/graph/badge.svg?token=ARU7BCiEar)](https://codecov.io/gh/yacchi/go-safegroup)
+[![Go Reference](https://pkg.go.dev/badge/github.com/yacchi/go-safegroup.svg)](https://pkg.go.dev/github.com/yacchi/go-safegroup)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yacchi/go-safegroup)](https://goreportcard.com/report/github.com/yacchi/go-safegroup)
+[![License](https://img.shields.io/github/license/yacchi/go-safegroup)](LICENSE)
+
 `safegroup` is a panic-safe, join-first goroutine group for Go 1.20+.
 
 - Recovers panics in worker goroutines.
