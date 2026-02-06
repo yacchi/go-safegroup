@@ -46,6 +46,14 @@ This file applies to the entire repository.
 - All commit messages must be written in English.
 - Use Conventional Commit format (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
 
+## Release Process
+- Release automation is managed by `.github/workflows/release-please.yml` (`googleapis/release-please-action@v4`).
+- Use Conventional Commits on PR merge commits to `main` so release-please can determine semantic version bumps.
+- `release-please` opens/updates a Release PR. Merge that Release PR when you want to publish.
+- Merging the Release PR updates `CHANGELOG.md`, creates a Git tag, and creates the GitHub Release.
+- If a specific version is required, use `Release-As: x.y.z` in a commit message footer.
+- Treat `CHANGELOG.md` as release-please managed content.
+
 ## Non-Goals
 - This library is not intended to be `errgroup` return-compatible.
 - `runtime.Goexit` is not supported.
