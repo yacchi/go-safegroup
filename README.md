@@ -12,7 +12,7 @@ not only the first one.
 ## Installation
 
 ```bash
-go get github.com/yacchi/safegroup
+go get github.com/yacchi/go-safegroup
 ```
 
 ## Requirements
@@ -30,7 +30,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/yacchi/safegroup"
+	"github.com/yacchi/go-safegroup"
 )
 
 func main() {
@@ -62,7 +62,7 @@ func main() {
 
 Canonical API docs are published on `pkg.go.dev`:
 
-- `https://pkg.go.dev/github.com/yacchi/safegroup`
+- `https://pkg.go.dev/github.com/yacchi/go-safegroup`
 
 ## Default Behavior
 

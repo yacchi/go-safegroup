@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/yacchi/safegroup"
+	"github.com/yacchi/go-safegroup"
 )
 
 func ExampleWithContext() {

@@ -12,7 +12,7 @@
 ## インストール
 
 ```bash
-go get github.com/yacchi/safegroup
+go get github.com/yacchi/go-safegroup
 ```
 
 ## 動作要件
@@ -30,7 +30,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/yacchi/safegroup"
+	"github.com/yacchi/go-safegroup"
 )
 
 func main() {
@@ -62,7 +62,7 @@ func main() {
 
 正式な API ドキュメントは `pkg.go.dev` で公開されています:
 
-- `https://pkg.go.dev/github.com/yacchi/safegroup`
+- `https://pkg.go.dev/github.com/yacchi/go-safegroup`
 
 ## デフォルト動作
 

@@ -4,7 +4,7 @@
 This file applies to the entire repository.
 
 ## Project Summary
-- Module: `github.com/yacchi/safegroup`
+- Module: `github.com/yacchi/go-safegroup`
 - Purpose: panic-safe, join-first goroutine group for Go 1.20+
 - Key behavior:
   - Recovers panics and converts them to `*PanicError`

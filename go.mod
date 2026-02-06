@@ -1,3 +1,3 @@
-module github.com/yacchi/safegroup
+module github.com/yacchi/go-safegroup
 
 go 1.20
