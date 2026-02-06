@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 )
 
 type token struct{}
@@ -18,6 +19,7 @@ type Group struct {
 	sem chan token
 
 	waitGroup sync.WaitGroup
+	closed    atomic.Bool
 
 	mutex  sync.Mutex
 	errors []error
@@ -49,6 +51,8 @@ func WithContext(ctx context.Context, opts ...Option) (*Group, context.Context) 
 }
 
 // Go starts a task without a label.
+//
+// This method panics after Wait has returned.
 func (g *Group) Go(task func(context.Context) error) {
 	g.GoLabel("", task)
 }
@@ -59,13 +63,22 @@ func (g *Group) Go(task func(context.Context) error) {
 // When a limit is set with SetLimit, this method blocks until a slot is
 // available or the group context is canceled. If the context is canceled
 // while waiting, the task is not started.
+//
+// This method panics after Wait has returned.
 func (g *Group) GoLabel(label string, task func(context.Context) error) {
 	if task == nil {
 		panic("safegroup: nil task")
 	}
+	if g.closed.Load() {
+		panic("safegroup: Go after Wait")
+	}
 	if g.sem != nil {
 		select {
 		case g.sem <- token{}:
+			if g.closed.Load() {
+				<-g.sem
+				panic("safegroup: Go after Wait")
+			}
 			select {
 			case <-g.ctx.Done():
 				<-g.sem
@@ -84,6 +97,7 @@ func (g *Group) GoLabel(label string, task func(context.Context) error) {
 //
 // It returns false when SetLimit is configured and no slot is currently
 // available.
+// It also returns false after Wait has returned.
 func (g *Group) TryGo(task func(context.Context) error) bool {
 	return g.TryGoLabel("", task)
 }
@@ -92,13 +106,21 @@ func (g *Group) TryGo(task func(context.Context) error) bool {
 //
 // It returns false when SetLimit is configured and no slot is currently
 // available.
+// It also returns false after Wait has returned.
 func (g *Group) TryGoLabel(label string, task func(context.Context) error) bool {
 	if task == nil {
 		panic("safegroup: nil task")
 	}
+	if g.closed.Load() {
+		return false
+	}
 	if g.sem != nil {
 		select {
 		case g.sem <- token{}:
+			if g.closed.Load() {
+				<-g.sem
+				return false
+			}
 		default:
 			return false
 		}
@@ -111,7 +133,7 @@ func (g *Group) TryGoLabel(label string, task func(context.Context) error) bool 
 // SetLimit sets the maximum number of active tasks.
 //
 // A zero limit removes the limit.
-// Call SetLimit only before starting tasks or after Wait has returned.
+// Call SetLimit only before starting tasks.
 func (g *Group) SetLimit(limit int) {
 	if limit < 0 {
 		panic("safegroup: negative limit")
@@ -131,13 +153,14 @@ func (g *Group) SetLimit(limit int) {
 // as errors.Join.
 //
 // It returns nil when no task failed and no task panicked.
-// Wait may be called multiple times; each call returns an equivalent snapshot
-// of collected failures.
+// Wait may be called multiple times and returns a consistent snapshot of
+// collected failures.
 // Wait cancels the group context before returning. Tasks started after a Wait
-// call receive the already-canceled context.
+// call are rejected.
 func (g *Group) Wait() error {
 	g.waitGroup.Wait()
 	g.cancel()
+	g.closed.Store(true)
 
 	g.mutex.Lock()
 	defer g.mutex.Unlock()

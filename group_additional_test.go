@@ -12,24 +12,6 @@ func TestSetLimitZeroRemovesLimit(t *testing.T) {
 	group, _ := WithContext(context.Background())
 	group.SetLimit(1)
 
-	block := make(chan struct{})
-	started := make(chan struct{})
-	group.Go(func(context.Context) error {
-		close(started)
-		<-block
-		return nil
-	})
-	<-started
-
-	if group.TryGo(func(context.Context) error { return nil }) {
-		t.Fatal("expected TryGo to fail while limit is full")
-	}
-
-	close(block)
-	if err := group.Wait(); err != nil {
-		t.Fatalf("unexpected wait error: %v", err)
-	}
-
 	group.SetLimit(0)
 	if !group.TryGo(func(context.Context) error { return nil }) {
 		t.Fatal("expected TryGo to succeed after removing limit")
@@ -196,6 +178,39 @@ func TestWaitCanBeCalledMultipleTimes(t *testing.T) {
 	}
 	if first.Error() != second.Error() {
 		t.Fatalf("expected equivalent results, got first=%q second=%q", first.Error(), second.Error())
+	}
+}
+
+func TestGoAfterWaitPanics(t *testing.T) {
+	group, _ := WithContext(context.Background())
+	if err := group.Wait(); err != nil {
+		t.Fatalf("unexpected wait error: %v", err)
+	}
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		if got, ok := recovered.(string); !ok || got != "safegroup: Go after Wait" {
+			t.Fatalf("unexpected panic: %v", recovered)
+		}
+	}()
+
+	group.Go(func(context.Context) error { return nil })
+}
+
+func TestTryGoAfterWaitReturnsFalse(t *testing.T) {
+	group, _ := WithContext(context.Background())
+	if err := group.Wait(); err != nil {
+		t.Fatalf("unexpected wait error: %v", err)
+	}
+
+	if ok := group.TryGo(func(context.Context) error { return nil }); ok {
+		t.Fatal("expected TryGo to return false after Wait")
+	}
+	if ok := group.TryGoLabel("worker-a", func(context.Context) error { return nil }); ok {
+		t.Fatal("expected TryGoLabel to return false after Wait")
 	}
 }
 
