@@ -130,6 +130,7 @@ safegroup.Go(func() error {
 
 - `error`
 - `fmt.Formatter`（`%+v` でスタックトレース付き出力）
+- Go 1.21+ では `slog.LogValuer`（`stack` を構造化フィールドとして出力）
 - `Unwrap() error`（`Value` が `error` 型の場合のみ）
 
 ## 注意事項

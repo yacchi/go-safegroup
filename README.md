@@ -130,6 +130,7 @@ safegroup.Go(func() error {
 
 - `error`
 - `fmt.Formatter` (`%+v` includes stack trace)
+- `slog.LogValuer` on Go 1.21+ (`stack` is emitted as a structured field)
 - `Unwrap() error` only when `Value` is an `error`
 
 ## Notes
