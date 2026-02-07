@@ -295,3 +295,29 @@ func TestOnErrorWithContextPanicStillCancelsGroup(t *testing.T) {
 		return taskErr
 	})
 }
+
+func TestOnPanicWithContextPanicStillCancelsGroup(t *testing.T) {
+	group, ctx := WithContext(
+		context.Background(),
+		CancelOnPanic(true),
+		OnPanicWithContext(func(context.Context, *PanicError) { panic("hook panic") }),
+	)
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		if got, ok := recovered.(string); !ok || got != "hook panic" {
+			t.Fatalf("unexpected panic: %v", recovered)
+		}
+		if ctx.Err() == nil {
+			t.Fatal("expected context to be canceled")
+		}
+	}()
+
+	group.waitGroup.Add(1)
+	group.runTask("worker-a", func(context.Context) error {
+		panic("task panic")
+	})
+}

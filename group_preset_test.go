@@ -143,6 +143,61 @@ func TestNilGroupPresetGoLabelRunsTask(t *testing.T) {
 	}
 }
 
+func TestNilGroupPresetGoContextRunsTask(t *testing.T) {
+	var preset *GroupPreset
+
+	taskDone := make(chan struct{})
+	preset.GoContext(context.Background(), func(context.Context) error {
+		close(taskDone)
+		return nil
+	})
+
+	select {
+	case <-taskDone:
+	case <-time.After(1 * time.Second):
+		t.Fatal("task did not run")
+	}
+}
+
+func TestNilGroupPresetGoLabelContextRunsTask(t *testing.T) {
+	var preset *GroupPreset
+
+	taskDone := make(chan struct{})
+	preset.GoLabelContext(context.Background(), "worker-a", func(context.Context) error {
+		close(taskDone)
+		return nil
+	})
+
+	select {
+	case <-taskDone:
+	case <-time.After(1 * time.Second):
+		t.Fatal("task did not run")
+	}
+}
+
+func TestGroupPresetGoContextNilTaskPanics(t *testing.T) {
+	preset := NewGroupPreset()
+	assertPanicsWithMessage(t, "safegroup: nil task", func() {
+		preset.GoContext(context.Background(), nil)
+	})
+}
+
+func TestGroupPresetGoLabelContextNilTaskPanics(t *testing.T) {
+	preset := NewGroupPreset()
+	assertPanicsWithMessage(t, "safegroup: nil task", func() {
+		preset.GoLabelContext(context.Background(), "worker-a", nil)
+	})
+}
+
+func TestGroupPresetGoLabelContextNilContextPanics(t *testing.T) {
+	preset := NewGroupPreset()
+	assertPanicsWithMessage(t, "safegroup: nil context", func() {
+		preset.GoLabelContext(nil, "worker-a", func(context.Context) error {
+			return nil
+		})
+	})
+}
+
 func TestGroupPresetGoPassesContextToErrorHook(t *testing.T) {
 	const key contextKey = "request-id"
 
@@ -249,4 +304,24 @@ func TestGroupPresetGoLabelContextPassesContextToPanicHook(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Fatal("panic hook was not called")
 	}
+}
+
+func assertPanicsWithMessage(t *testing.T, want string, fn func()) {
+	t.Helper()
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		got, ok := recovered.(string)
+		if !ok {
+			t.Fatalf("panic type = %T, want string", recovered)
+		}
+		if got != want {
+			t.Fatalf("panic = %q, want %q", got, want)
+		}
+	}()
+
+	fn()
 }
