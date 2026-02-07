@@ -36,8 +36,45 @@ func TestPackageGoAndGoContextDelegateToDefaultPreset(t *testing.T) {
 		return errors.New("task failed")
 	})
 
-	expectHookValue(t, hookValues, "plain")
-	expectHookValue(t, hookValues, "with-context")
+	expectHookValues(t, hookValues, "plain", "with-context")
+}
+
+func TestPackageDefaultGroupDelegatesToDefaultPreset(t *testing.T) {
+	old := DefaultPreset
+	t.Cleanup(func() {
+		DefaultPreset = old
+	})
+
+	group, _ := DefaultGroup(context.Background())
+	group.Go(func(context.Context) error {
+		return errors.New("task failed")
+	})
+
+	if err := group.Wait(); err == nil {
+		t.Fatal("Wait() = nil, want non-nil error")
+	}
+
+	DefaultPreset = NewGroupPreset().WithOptions(CancelOnError(false))
+	groupNoCancel, _ := DefaultGroup(context.Background())
+	groupNoCancel.Go(func(context.Context) error {
+		return errors.New("task failed")
+	})
+	groupNoCancel.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+			return nil
+		}
+	})
+
+	err := groupNoCancel.Wait()
+	if err == nil {
+		t.Fatal("Wait() = nil, want non-nil error")
+	}
+	if errors.Is(err, context.Canceled) {
+		t.Fatalf("unexpected context cancellation in joined error: %v", err)
+	}
 }
 
 func TestPackageGoLabelAndGoLabelContextDelegateToDefaultPreset(t *testing.T) {
@@ -69,19 +106,32 @@ func TestPackageGoLabelAndGoLabelContextDelegateToDefaultPreset(t *testing.T) {
 		panic("boom")
 	})
 
-	expectHookValue(t, hookValues, "plain-label")
-	expectHookValue(t, hookValues, "context-label")
+	expectHookValues(t, hookValues, "plain-label", "context-label")
 }
 
-func expectHookValue(t *testing.T, ch <-chan string, want string) {
+func expectHookValues(t *testing.T, ch <-chan string, wants ...string) {
 	t.Helper()
 
-	select {
-	case got := <-ch:
-		if got != want {
-			t.Fatalf("unexpected context value: got %q, want %q", got, want)
+	remaining := make(map[string]int, len(wants))
+	for _, want := range wants {
+		remaining[want]++
+	}
+
+	for range wants {
+		select {
+		case got := <-ch:
+			if remaining[got] == 0 {
+				t.Fatalf("unexpected context value: got %q", got)
+			}
+			remaining[got]--
+		case <-time.After(1 * time.Second):
+			t.Fatal("hook was not called")
 		}
-	case <-time.After(1 * time.Second):
-		t.Fatal("hook was not called")
+	}
+
+	for want, count := range remaining {
+		if count != 0 {
+			t.Fatalf("missing context value: %q", want)
+		}
 	}
 }

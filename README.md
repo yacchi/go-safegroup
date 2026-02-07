@@ -65,7 +65,7 @@ func main() {
 - Preset: `NewGroupPreset`, `GroupPreset.Group`
 - Task APIs: `Go`, `GoLabel`, `TryGo`, `TryGoLabel`, `SetLimit`
 - Detached task APIs: `GroupPreset.Go`, `GroupPreset.GoContext`, `GroupPreset.GoLabel`, `GroupPreset.GoLabelContext`
-- Package helper APIs: `DefaultPreset`, `safegroup.Go`, `safegroup.GoContext`, `safegroup.GoLabel`, `safegroup.GoLabelContext`
+- Package helper APIs: `DefaultPreset`, `safegroup.DefaultGroup`, `safegroup.Go`, `safegroup.GoContext`, `safegroup.GoLabel`, `safegroup.GoLabelContext`
 - Result APIs: `Wait`, `Errors`, `Panics`
 - Panic helpers: `IsPanic`, `AsPanic`, `AllPanics`
 

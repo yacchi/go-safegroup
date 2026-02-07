@@ -65,7 +65,7 @@ func main() {
 - プリセット: `NewGroupPreset`, `GroupPreset.Group`
 - タスク API: `Go`, `GoLabel`, `TryGo`, `TryGoLabel`, `SetLimit`
 - 非同期起動 API: `GroupPreset.Go`, `GroupPreset.GoContext`, `GroupPreset.GoLabel`, `GroupPreset.GoLabelContext`
-- パッケージヘルパー API: `DefaultPreset`, `safegroup.Go`, `safegroup.GoContext`, `safegroup.GoLabel`, `safegroup.GoLabelContext`
+- パッケージヘルパー API: `DefaultPreset`, `safegroup.DefaultGroup`, `safegroup.Go`, `safegroup.GoContext`, `safegroup.GoLabel`, `safegroup.GoLabelContext`
 - 結果取得 API: `Wait`, `Errors`, `Panics`
 - パニックヘルパー: `IsPanic`, `AsPanic`, `AllPanics`
 

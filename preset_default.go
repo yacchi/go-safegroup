@@ -7,6 +7,12 @@ import "context"
 // Configure it with WithXXX methods when you need non-default behavior.
 var DefaultPreset = NewGroupPreset()
 
+// DefaultGroup creates a new Group using DefaultPreset and the provided parent
+// context.
+func DefaultGroup(ctx context.Context) (*Group, context.Context) {
+	return DefaultPreset.Group(ctx)
+}
+
 // Go starts one detached task using DefaultPreset and the provided parent
 // context.
 //
