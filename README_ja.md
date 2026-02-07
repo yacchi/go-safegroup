@@ -81,6 +81,11 @@ func main() {
 
 `WithContext(...)` のオプションで動作を変更できます。
 
+フック関連オプション:
+
+- `OnError`, `OnPanic`
+- `OnErrorWithContext`, `OnPanicWithContext`
+
 ## GroupPreset
 
 同じオプション設定を使い回したい場合は `GroupPreset` を使います。
@@ -137,10 +142,11 @@ safegroup.Go(func() error {
 
 - `runtime.Goexit` は `recover` でリカバリできないため、サポート対象外です。
 - このパッケージ自体はログを出力しません。メトリクスやログには `OnError` / `OnPanic` フックを使用してください。
+- `CancelOnError(true)` / `CancelOnPanic(true)` 有効時、同一失敗が引き起こすキャンセルより前にフックが呼ばれます。
 - `SetLimit` 使用時の `GoLabel` は、スロットが空くかグループコンテキストがキャンセルされるまで待機します。待機中にキャンセルされた場合、タスクは起動されません。
 - `Wait` は複数回呼び出せます。各呼び出しは一貫した失敗スナップショットを返します。
 - `Wait` はグループの終端操作です。`Wait` の返却後は `Go`/`GoLabel` は panic し、`TryGo`/`TryGoLabel` は `false` を返します。
-- `OnError` / `OnPanic` フック内で発生した panic は `safegroup` では recover されません。
+- `OnError` / `OnPanic` / `OnErrorWithContext` / `OnPanicWithContext` フック内で発生した panic は `safegroup` では recover されません。
 
 ## タスクランナー
 

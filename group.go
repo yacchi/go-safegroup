@@ -207,9 +207,9 @@ func (g *Group) runTask(label string, task func(context.Context) error) {
 	if err := g.runTaskBody(label, task); err != nil {
 		g.appendError(err)
 		if g.cfg.cancelOnError {
-			g.cancel()
+			defer g.cancel()
 		}
-		g.cfg.onError(err)
+		g.cfg.onError(g.ctx, err)
 	}
 }
 
@@ -225,9 +225,9 @@ func (g *Group) runTaskBody(label string, task func(context.Context) error) (tas
 			}
 			g.appendPanic(panicError)
 			if g.cfg.cancelOnPanic {
-				g.cancel()
+				defer g.cancel()
 			}
-			g.cfg.onPanic(panicError)
+			g.cfg.onPanic(g.ctx, panicError)
 		}
 	}()
 

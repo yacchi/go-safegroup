@@ -81,6 +81,11 @@ Canonical API docs are published on `pkg.go.dev`:
 
 Use options in `WithContext(...)` to change behavior.
 
+Hook options:
+
+- `OnError`, `OnPanic`
+- `OnErrorWithContext`, `OnPanicWithContext`
+
 ## GroupPreset
 
 Use `GroupPreset` when you want to reuse the same options across calls.
@@ -137,10 +142,11 @@ safegroup.Go(func() error {
 
 - `runtime.Goexit` is not supported because it is not recoverable with `recover`.
 - This package does not log by itself. Use `OnError` / `OnPanic` hooks for metrics or logging.
+- When `CancelOnError(true)` / `CancelOnPanic(true)` is enabled, hooks are called before cancellation triggered by that same failure.
 - `GoLabel` with `SetLimit` waits for a slot or group context cancellation. If canceled while waiting, the task is not started.
 - `Wait` can be called multiple times and returns a consistent failure snapshot.
 - `Wait` is terminal for the group: after `Wait` returns, `Go`/`GoLabel` panic and `TryGo`/`TryGoLabel` return `false`.
-- Panics inside `OnError` / `OnPanic` hooks are not recovered by `safegroup`.
+- Panics inside `OnError` / `OnPanic` / `OnErrorWithContext` / `OnPanicWithContext` hooks are not recovered by `safegroup`.
 
 ## Task Runner
 

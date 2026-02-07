@@ -1,5 +1,7 @@
 package safegroup
 
+import "context"
+
 // Option mutates Group behavior at construction time.
 type Option func(*config)
 
@@ -7,13 +9,13 @@ type config struct {
 	cancelOnError bool
 	cancelOnPanic bool
 	captureStack  bool
-	onPanic       func(*PanicError)
-	onError       func(error)
+	onPanic       func(context.Context, *PanicError)
+	onError       func(context.Context, error)
 }
 
-func noopPanicHandler(*PanicError) {}
+func noopPanicHandler(context.Context, *PanicError) {}
 
-func noopErrorHandler(error) {}
+func noopErrorHandler(context.Context, error) {}
 
 func defaultConfig() config {
 	return config{
@@ -53,6 +55,30 @@ func CaptureStack(enabled bool) Option {
 //
 // Panics in the hook itself are not recovered by Group.
 func OnPanic(fn func(*PanicError)) Option {
+	if fn == nil {
+		return OnPanicWithContext(nil)
+	}
+	return OnPanicWithContext(func(_ context.Context, panicErr *PanicError) {
+		fn(panicErr)
+	})
+}
+
+// OnError registers a hook called when a task returns a non-nil error.
+//
+// Panics in the hook itself are not recovered by Group.
+func OnError(fn func(error)) Option {
+	if fn == nil {
+		return OnErrorWithContext(nil)
+	}
+	return OnErrorWithContext(func(_ context.Context, err error) {
+		fn(err)
+	})
+}
+
+// OnPanicWithContext registers a hook called when a task panic is recovered.
+//
+// Panics in the hook itself are not recovered by Group.
+func OnPanicWithContext(fn func(context.Context, *PanicError)) Option {
 	return func(cfg *config) {
 		if fn == nil {
 			fn = noopPanicHandler
@@ -61,10 +87,11 @@ func OnPanic(fn func(*PanicError)) Option {
 	}
 }
 
-// OnError registers a hook called when a task returns a non-nil error.
+// OnErrorWithContext registers a hook called when a task returns a non-nil
+// error.
 //
 // Panics in the hook itself are not recovered by Group.
-func OnError(fn func(error)) Option {
+func OnErrorWithContext(fn func(context.Context, error)) Option {
 	return func(cfg *config) {
 		if fn == nil {
 			fn = noopErrorHandler
