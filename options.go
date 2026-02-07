@@ -76,6 +76,8 @@ func OnError(fn func(error)) Option {
 }
 
 // OnPanicWithContext registers a hook called when a task panic is recovered.
+// The hook receives the group's derived context, not the task's input context.
+// It may already be canceled when another task has triggered cancellation.
 //
 // Panics in the hook itself are not recovered by Group.
 func OnPanicWithContext(fn func(context.Context, *PanicError)) Option {
@@ -88,7 +90,9 @@ func OnPanicWithContext(fn func(context.Context, *PanicError)) Option {
 }
 
 // OnErrorWithContext registers a hook called when a task returns a non-nil
-// error.
+// error. The hook receives the group's derived context, not the task's input
+// context. It may already be canceled when another task has triggered
+// cancellation.
 //
 // Panics in the hook itself are not recovered by Group.
 func OnErrorWithContext(fn func(context.Context, error)) Option {

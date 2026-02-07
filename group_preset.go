@@ -81,6 +81,10 @@ func (p *GroupPreset) GoLabel(ctx context.Context, label string, task func() err
 // configured options and the provided parent context.
 //
 // The task receives the group's derived context.
+// Because the provided parent context is used as the group root, cancellation
+// of that parent can stop detached work earlier than expected.
+// This method also starts an internal goroutine that waits on group.Wait();
+// when the task blocks forever, that waiter goroutine also remains blocked.
 //
 // This method returns immediately.
 // When p is nil, this method uses default options.

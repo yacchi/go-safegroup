@@ -117,16 +117,20 @@ _ = group.Wait()
 For the most minimal detached use, call package-level helpers:
 
 ```go
+type requestIDKey struct{}
+
+requestID := requestIDKey{}
+
 safegroup.DefaultPreset.
 	WithOptions(
 		safegroup.OnErrorWithContext(func(ctx context.Context, err error) {
-			requestID, _ := ctx.Value("request-id").(string)
-			log.Printf("request_id=%s task error: %v", requestID, err)
+			id, _ := ctx.Value(requestID).(string)
+			log.Printf("request_id=%s task error: %v", id, err)
 		}),
 		safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
 	)
 
-reqCtx := context.WithValue(context.Background(), "request-id", "req-1")
+reqCtx := context.WithValue(context.Background(), requestID, "req-1")
 safegroup.Go(reqCtx, func() error {
 	return errors.New("failed")
 })
