@@ -167,8 +167,8 @@ safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
 - When `CancelOnError(true)` / `CancelOnPanic(true)` is enabled, hooks are called before cancellation triggered by that same failure.
 - Slow hooks can delay cancellation propagation for that same failure.
 - `GoLabel` with `SetLimit` waits for a slot or group context cancellation. If canceled while waiting, the task is not started.
-- Detached helpers (`Go*`/`GoLabel*` on presets and package-level APIs) start one worker task goroutine and one internal waiter goroutine (`group.Wait()`); each detached call therefore adds two goroutines until the task finishes.
-- The internal waiter is used to guarantee final context cancellation on task completion and to release context-related resources even when the caller does not call `Wait`.
+- Detached helpers (`Go*`/`GoLabel*` on presets and package-level APIs) start one worker task goroutine per call.
+- Detached task completion still cancels the derived group context internally, even though the caller does not call `Wait`.
 - `Wait` can be called multiple times and returns a consistent failure snapshot.
 - `Wait` is terminal for the group: after `Wait` returns, `Go`/`GoLabel` panic and `TryGo`/`TryGoLabel` return `false`.
 - Panics inside `OnError` / `OnPanic` / `OnErrorWithContext` / `OnPanicWithContext` hooks are not recovered by `safegroup`.

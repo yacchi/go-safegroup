@@ -228,6 +228,27 @@ func TestGroupPresetMethodsNilContextPanics(t *testing.T) {
 	}
 }
 
+func TestGroupPresetDetachedTaskCancelsDerivedContextOnExit(t *testing.T) {
+	preset := NewGroupPreset(CancelOnError(false), CancelOnPanic(false))
+
+	taskCtxCh := make(chan context.Context, 1)
+	preset.GoContext(context.Background(), func(ctx context.Context) error {
+		taskCtxCh <- ctx
+		return nil
+	})
+
+	select {
+	case taskCtx := <-taskCtxCh:
+		select {
+		case <-taskCtx.Done():
+		case <-time.After(1 * time.Second):
+			t.Fatal("expected derived context to be canceled after detached task exit")
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("task did not run")
+	}
+}
+
 func TestGroupPresetGoPassesContextToErrorHook(t *testing.T) {
 	const key contextKey = "request-id"
 

@@ -167,8 +167,8 @@ safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
 - `CancelOnError(true)` / `CancelOnPanic(true)` 有効時、同一失敗が引き起こすキャンセルより前にフックが呼ばれます。
 - フックが重い処理を行う場合、同一失敗に対するキャンセル伝播が遅れる可能性があります。
 - `SetLimit` 使用時の `GoLabel` は、スロットが空くかグループコンテキストがキャンセルされるまで待機します。待機中にキャンセルされた場合、タスクは起動されません。
-- detached ヘルパー（preset とパッケージレベルの `Go*`/`GoLabel*`）は、タスク実行 goroutine に加えて内部 waiter goroutine（`group.Wait()`）を1本起動します。したがって detached 呼び出し1回につき、タスク完了まで最大2本の goroutine を消費します。
-- 内部 waiter は、呼び出し側が `Wait` しない利用形態でも、タスク終了時の最終的な context キャンセルを保証し、context 関連リソースを解放するために使われます。
+- detached ヘルパー（preset とパッケージレベルの `Go*`/`GoLabel*`）は、呼び出しごとにタスク実行 goroutine を1本起動します。
+- 呼び出し側が `Wait` しない利用形態でも、detached タスク完了時には内部的に派生 group context がキャンセルされます。
 - `Wait` は複数回呼び出せます。各呼び出しは一貫した失敗スナップショットを返します。
 - `Wait` はグループの終端操作です。`Wait` の返却後は `Go`/`GoLabel` は panic し、`TryGo`/`TryGoLabel` は `false` を返します。
 - `OnError` / `OnPanic` / `OnErrorWithContext` / `OnPanicWithContext` フック内で発生した panic は `safegroup` では recover されません。

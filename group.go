@@ -18,6 +18,8 @@ type Group struct {
 
 	sem chan token
 
+	onTaskExit func()
+
 	waitGroup sync.WaitGroup
 	closed    atomic.Bool
 
@@ -203,12 +205,15 @@ func (g *Group) Panics() []*PanicError {
 }
 
 func (g *Group) runTask(label string, task func(context.Context) error) {
-	defer g.waitGroup.Done()
-	if g.sem != nil {
-		defer func() {
+	defer func() {
+		if g.sem != nil {
 			<-g.sem
-		}()
-	}
+		}
+		g.waitGroup.Done()
+		if g.onTaskExit != nil {
+			g.onTaskExit()
+		}
+	}()
 
 	if err := g.runTaskBody(label, task); err != nil {
 		g.appendError(err)
@@ -217,6 +222,10 @@ func (g *Group) runTask(label string, task func(context.Context) error) {
 		}
 		g.cfg.onError(g.ctx, err)
 	}
+}
+
+func (g *Group) setOnTaskExit(fn func()) {
+	g.onTaskExit = fn
 }
 
 func (g *Group) runTaskBody(label string, task func(context.Context) error) (taskErr error) {
