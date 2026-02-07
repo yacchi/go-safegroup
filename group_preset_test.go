@@ -189,6 +189,45 @@ func TestGroupPresetGoLabelContextNilTaskPanics(t *testing.T) {
 	})
 }
 
+func TestGroupPresetMethodsNilContextPanics(t *testing.T) {
+	preset := NewGroupPreset()
+	tests := []struct {
+		name string
+		call func()
+	}{
+		{
+			name: "Go",
+			call: func() {
+				preset.Go(nil, func() error { return nil })
+			},
+		},
+		{
+			name: "GoContext",
+			call: func() {
+				preset.GoContext(nil, func(context.Context) error { return nil })
+			},
+		},
+		{
+			name: "GoLabel",
+			call: func() {
+				preset.GoLabel(nil, "worker-a", func() error { return nil })
+			},
+		},
+		{
+			name: "GoLabelContext",
+			call: func() {
+				preset.GoLabelContext(nil, "worker-a", func(context.Context) error { return nil })
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertPanicsWithMessage(t, "safegroup: nil context", tt.call)
+		})
+	}
+}
+
 func TestGroupPresetGoPassesContextToErrorHook(t *testing.T) {
 	const key contextKey = "request-id"
 
