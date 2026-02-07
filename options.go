@@ -1,6 +1,10 @@
 package safegroup
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"os"
+)
 
 // Option mutates Group behavior at construction time.
 type Option func(*config)
@@ -62,6 +66,17 @@ func OnPanic(fn func(*PanicError)) Option {
 	}
 	return OnPanicWithContext(func(_ context.Context, panicErr *PanicError) {
 		fn(panicErr)
+	})
+}
+
+// OnPanicStderr registers a panic hook that writes recovered panic details to
+// standard error.
+//
+// It is equivalent to OnPanic(func(pe *PanicError) { fmt.Fprintf(os.Stderr, "safegroup: panic: %+v\n", pe) }).
+// If combined with OnPanic or OnPanicWithContext, the later applied option wins.
+func OnPanicStderr() Option {
+	return OnPanic(func(panicErr *PanicError) {
+		_, _ = fmt.Fprintf(os.Stderr, "safegroup: panic: %+v\n", panicErr)
 	})
 }
 

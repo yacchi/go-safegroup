@@ -85,6 +85,7 @@ func main() {
 
 - `OnError`, `OnPanic`
 - `OnErrorWithContext`, `OnPanicWithContext`
+- `OnPanicStderr`（recover済み panic を stderr に出力する opt-in ロガー）
 
 ## GroupPreset
 
@@ -163,7 +164,7 @@ safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
 ## 注意事項
 
 - `runtime.Goexit` は `recover` でリカバリできないため、サポート対象外です。
-- このパッケージ自体はログを出力しません。メトリクスやログには `OnError` / `OnPanic` フックを使用してください。
+- このパッケージ自体はログを出力しません。recover された panic もデフォルトでは無出力です。メトリクスやログには `OnError` / `OnPanic` フック（または `OnPanicStderr`）を使用してください。
 - `CancelOnError(true)` / `CancelOnPanic(true)` 有効時、同一失敗が引き起こすキャンセルより前にフックが呼ばれます。
 - フックが重い処理を行う場合、同一失敗に対するキャンセル伝播が遅れる可能性があります。
 - `SetLimit` 使用時の `GoLabel` は、スロットが空くかグループコンテキストがキャンセルされるまで待機します。待機中にキャンセルされた場合、タスクは起動されません。

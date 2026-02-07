@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -106,6 +109,58 @@ func TestWithContextParentAlreadyCanceled(t *testing.T) {
 	if ctx.Err() == nil {
 		t.Fatal("expected derived context to be canceled")
 	}
+}
+
+func TestOnPanicStderrWritesRecoveredPanic(t *testing.T) {
+	output := captureStderr(t, func() {
+		group, _ := WithContext(context.Background(), CaptureStack(false), OnPanicStderr())
+		group.GoLabel("worker-a", func(context.Context) error {
+			panic("boom")
+		})
+		if err := group.Wait(); err == nil {
+			t.Fatal("expected panic converted to error")
+		}
+	})
+
+	if !strings.Contains(output, "safegroup: panic:") {
+		t.Fatalf("expected stderr output to contain prefix, got %q", output)
+	}
+	if !strings.Contains(output, "\"worker-a\"") {
+		t.Fatalf("expected stderr output to contain label, got %q", output)
+	}
+	if !strings.Contains(output, "boom") {
+		t.Fatalf("expected stderr output to contain panic value, got %q", output)
+	}
+}
+
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+
+	original := os.Stderr
+	readPipe, writePipe, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe(): %v", err)
+	}
+	os.Stderr = writePipe
+
+	defer func() {
+		os.Stderr = original
+	}()
+
+	fn()
+
+	if err := writePipe.Close(); err != nil {
+		t.Fatalf("writePipe.Close(): %v", err)
+	}
+
+	content, err := io.ReadAll(readPipe)
+	if err != nil {
+		t.Fatalf("io.ReadAll(): %v", err)
+	}
+	if err := readPipe.Close(); err != nil {
+		t.Fatalf("readPipe.Close(): %v", err)
+	}
+	return string(content)
 }
 
 func TestPanicErrorFormatVerbs(t *testing.T) {

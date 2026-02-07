@@ -85,6 +85,7 @@ Hook options:
 
 - `OnError`, `OnPanic`
 - `OnErrorWithContext`, `OnPanicWithContext`
+- `OnPanicStderr` (opt-in stderr logger for recovered panics)
 
 ## GroupPreset
 
@@ -163,7 +164,7 @@ safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
 ## Notes
 
 - `runtime.Goexit` is not supported because it is not recoverable with `recover`.
-- This package does not log by itself. Use `OnError` / `OnPanic` hooks for metrics or logging.
+- This package does not log by itself. Recovered panics are also silent by default. Use `OnError` / `OnPanic` hooks (or `OnPanicStderr`) for metrics/logging.
 - When `CancelOnError(true)` / `CancelOnPanic(true)` is enabled, hooks are called before cancellation triggered by that same failure.
 - Slow hooks can delay cancellation propagation for that same failure.
 - `GoLabel` with `SetLimit` waits for a slot or group context cancellation. If canceled while waiting, the task is not started.
