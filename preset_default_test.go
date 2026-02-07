@@ -109,57 +109,6 @@ func TestPackageGoLabelAndGoLabelContextDelegateToDefaultPreset(t *testing.T) {
 	expectHookValues(t, hookValues, "plain-label", "context-label")
 }
 
-func TestPackageHelpersNilContextPanics(t *testing.T) {
-	tests := []struct {
-		name string
-		call func()
-	}{
-		{
-			name: "Go",
-			call: func() {
-				Go(nil, func() error { return nil })
-			},
-		},
-		{
-			name: "GoContext",
-			call: func() {
-				GoContext(nil, func(context.Context) error { return nil })
-			},
-		},
-		{
-			name: "GoLabel",
-			call: func() {
-				GoLabel(nil, "worker-a", func() error { return nil })
-			},
-		},
-		{
-			name: "GoLabelContext",
-			call: func() {
-				GoLabelContext(nil, "worker-a", func(context.Context) error { return nil })
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			defer func() {
-				recovered := recover()
-				if recovered == nil {
-					t.Fatal("expected panic")
-				}
-				got, ok := recovered.(string)
-				if !ok {
-					t.Fatalf("panic type = %T, want string", recovered)
-				}
-				if got != "safegroup: nil context" {
-					t.Fatalf("panic = %q, want %q", got, "safegroup: nil context")
-				}
-			}()
-			tt.call()
-		})
-	}
-}
-
 func expectHookValues(t *testing.T, ch <-chan string, wants ...string) {
 	t.Helper()
 

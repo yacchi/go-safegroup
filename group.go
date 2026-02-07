@@ -28,12 +28,18 @@ type Group struct {
 
 // WithContext creates a new Group and derived context.
 //
+// This function panics when ctx is nil.
+//
 // The returned context is canceled when:
 //   - the parent context is canceled,
 //   - a task returns an error and CancelOnError(true),
 //   - a task panics and CancelOnPanic(true),
 //   - Wait returns.
 func WithContext(ctx context.Context, opts ...Option) (*Group, context.Context) {
+	if ctx == nil {
+		panic("safegroup: nil context")
+	}
+
 	cfg := defaultConfig()
 	for _, opt := range opts {
 		if opt != nil {

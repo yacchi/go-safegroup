@@ -68,6 +68,24 @@ func TestTryGoLabelPreservesLabelOnPanic(t *testing.T) {
 	}
 }
 
+func TestWithContextNilContextPanics(t *testing.T) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic")
+		}
+		got, ok := recovered.(string)
+		if !ok {
+			t.Fatalf("panic type = %T, want string", recovered)
+		}
+		if got != "safegroup: nil context" {
+			t.Fatalf("panic = %q, want %q", got, "safegroup: nil context")
+		}
+	}()
+
+	WithContext(nil)
+}
+
 func TestWithContextParentAlreadyCanceled(t *testing.T) {
 	parent, cancel := context.WithCancel(context.Background())
 	cancel()

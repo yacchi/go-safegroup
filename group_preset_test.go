@@ -189,15 +189,6 @@ func TestGroupPresetGoLabelContextNilTaskPanics(t *testing.T) {
 	})
 }
 
-func TestGroupPresetGoLabelContextNilContextPanics(t *testing.T) {
-	preset := NewGroupPreset()
-	assertPanicsWithMessage(t, "safegroup: nil context", func() {
-		preset.GoLabelContext(nil, "worker-a", func(context.Context) error {
-			return nil
-		})
-	})
-}
-
 func TestGroupPresetGoPassesContextToErrorHook(t *testing.T) {
 	const key contextKey = "request-id"
 

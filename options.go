@@ -66,6 +66,8 @@ func OnPanic(fn func(*PanicError)) Option {
 }
 
 // OnError registers a hook called when a task returns a non-nil error.
+// This option and OnErrorWithContext configure the same error hook; the later
+// applied option wins.
 //
 // Panics in the hook itself are not recovered by Group.
 func OnError(fn func(error)) Option {

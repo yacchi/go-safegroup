@@ -92,9 +92,6 @@ func (p *GroupPreset) GoLabelContext(ctx context.Context, label string, task fun
 	if task == nil {
 		panic("safegroup: nil task")
 	}
-	if ctx == nil {
-		panic("safegroup: nil context")
-	}
 
 	group, _ := p.Group(ctx)
 	group.GoLabel(label, task)
