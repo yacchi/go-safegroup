@@ -101,6 +101,10 @@ func OnPanicWithContext(fn func(context.Context, *PanicError)) Option {
 // error. The hook receives the group's derived context, not the task's input
 // context. It may already be canceled when another task has triggered
 // cancellation.
+// This option and OnError configure the same error hook; the later applied
+// option wins.
+// When CancelOnError(true) is enabled, this hook runs before cancellation
+// triggered by that same error; a slow hook delays that cancellation.
 //
 // Panics in the hook itself are not recovered by Group.
 func OnErrorWithContext(fn func(context.Context, error)) Option {
