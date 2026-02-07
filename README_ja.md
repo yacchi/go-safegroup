@@ -64,8 +64,8 @@ func main() {
 - コンストラクタ: `WithContext`
 - プリセット: `NewGroupPreset`, `GroupPreset.Group`
 - タスク API: `Go`, `GoLabel`, `TryGo`, `TryGoLabel`, `SetLimit`
-- 非同期起動 API: `GroupPreset.Go`, `GroupPreset.GoLabel`
-- パッケージヘルパー API: `DefaultPreset`, `safegroup.Go`, `safegroup.GoLabel`
+- 非同期起動 API: `GroupPreset.Go`, `GroupPreset.GoContext`, `GroupPreset.GoLabel`, `GroupPreset.GoLabelContext`
+- パッケージヘルパー API: `DefaultPreset`, `safegroup.Go`, `safegroup.GoContext`, `safegroup.GoLabel`, `safegroup.GoLabelContext`
 - 結果取得 API: `Wait`, `Errors`, `Panics`
 - パニックヘルパー: `IsPanic`, `AsPanic`, `AllPanics`
 
@@ -96,8 +96,13 @@ preset := safegroup.NewGroupPreset(
 	safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
 )
 
-preset.Go(func() error {
+preset.Go(ctx, func() error {
 	// 非同期処理
+	return nil
+})
+
+preset.GoContext(ctx, func(ctx context.Context) error {
+	_ = ctx
 	return nil
 })
 
@@ -114,13 +119,26 @@ _ = group.Wait()
 ```go
 safegroup.DefaultPreset.
 	WithOptions(
-		safegroup.OnError(func(err error) { log.Printf("task error: %v", err) }),
+		safegroup.OnErrorWithContext(func(ctx context.Context, err error) {
+			requestID, _ := ctx.Value("request-id").(string)
+			log.Printf("request_id=%s task error: %v", requestID, err)
+		}),
 		safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
 	)
 
-safegroup.Go(func() error {
-	return nil
+reqCtx := context.WithValue(context.Background(), "request-id", "req-1")
+safegroup.Go(reqCtx, func() error {
+	return errors.New("failed")
 })
+
+safegroup.GoLabel(reqCtx, "worker-a", func() error {
+	return errors.New("failed again")
+})
+
+safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
+	return errors.New("failed with context")
+})
+// OnErrorWithContext でこの context から request-id を取り出し、ログに含められます。
 ```
 
 ## PanicError

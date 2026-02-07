@@ -1,60 +1,87 @@
 package safegroup
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 )
 
-func TestPackageGoUsesDefaultPreset(t *testing.T) {
+func TestPackageGoAndGoContextDelegateToDefaultPreset(t *testing.T) {
 	old := DefaultPreset
 	t.Cleanup(func() {
 		DefaultPreset = old
 	})
 
-	errorHook := make(chan error, 1)
+	type contextKey string
+	const key contextKey = "request-id"
+
+	hookValues := make(chan string, 2)
 	DefaultPreset = NewGroupPreset().
 		WithOptions(
 			CancelOnError(false),
-			OnError(func(err error) { errorHook <- err }),
+			OnErrorWithContext(func(ctx context.Context, _ error) {
+				value, _ := ctx.Value(key).(string)
+				hookValues <- value
+			}),
 		)
 
-	taskErr := errors.New("task failed")
-	Go(func() error {
-		return taskErr
+	plainCtx := context.WithValue(context.Background(), key, "plain")
+	Go(plainCtx, func() error {
+		return errors.New("task failed")
 	})
 
-	select {
-	case err := <-errorHook:
-		if !errors.Is(err, taskErr) {
-			t.Fatalf("unexpected hook error: %v", err)
-		}
-	case <-time.After(1 * time.Second):
-		t.Fatal("error hook was not called")
-	}
+	contextCtx := context.WithValue(context.Background(), key, "with-context")
+	GoContext(contextCtx, func(context.Context) error {
+		return errors.New("task failed")
+	})
+
+	expectHookValue(t, hookValues, "plain")
+	expectHookValue(t, hookValues, "with-context")
 }
 
-func TestGroupPresetWithOptionsConfigureBehavior(t *testing.T) {
-	panicHook := make(chan *PanicError, 1)
-	preset := NewGroupPreset().
+func TestPackageGoLabelAndGoLabelContextDelegateToDefaultPreset(t *testing.T) {
+	old := DefaultPreset
+	t.Cleanup(func() {
+		DefaultPreset = old
+	})
+
+	type contextKey string
+	const key contextKey = "request-id"
+
+	hookValues := make(chan string, 2)
+	DefaultPreset = NewGroupPreset().
 		WithOptions(
 			CaptureStack(false),
-			OnPanic(func(panicErr *PanicError) { panicHook <- panicErr }),
+			OnPanicWithContext(func(ctx context.Context, _ *PanicError) {
+				value, _ := ctx.Value(key).(string)
+				hookValues <- value
+			}),
 		)
 
-	preset.GoLabel("worker-a", func() error {
+	plainCtx := context.WithValue(context.Background(), key, "plain-label")
+	GoLabel(plainCtx, "worker-a", func() error {
 		panic("boom")
 	})
 
+	contextCtx := context.WithValue(context.Background(), key, "context-label")
+	GoLabelContext(contextCtx, "worker-b", func(context.Context) error {
+		panic("boom")
+	})
+
+	expectHookValue(t, hookValues, "plain-label")
+	expectHookValue(t, hookValues, "context-label")
+}
+
+func expectHookValue(t *testing.T, ch <-chan string, want string) {
+	t.Helper()
+
 	select {
-	case panicErr := <-panicHook:
-		if panicErr.Label != "worker-a" {
-			t.Fatalf("unexpected label: %q", panicErr.Label)
-		}
-		if len(panicErr.Stack) != 0 {
-			t.Fatalf("expected no stack, got %d frames", len(panicErr.Stack))
+	case got := <-ch:
+		if got != want {
+			t.Fatalf("unexpected context value: got %q, want %q", got, want)
 		}
 	case <-time.After(1 * time.Second):
-		t.Fatal("panic hook was not called")
+		t.Fatal("hook was not called")
 	}
 }

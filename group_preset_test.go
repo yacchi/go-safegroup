@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+type contextKey string
+
 func TestGroupPresetGoCallsOnError(t *testing.T) {
 	errorHook := make(chan error, 1)
 	preset := NewGroupPreset(
@@ -19,7 +21,7 @@ func TestGroupPresetGoCallsOnError(t *testing.T) {
 	taskDone := make(chan struct{})
 	taskErr := errors.New("task failed")
 
-	preset.Go(func() error {
+	preset.Go(context.Background(), func() error {
 		close(taskDone)
 		return taskErr
 	})
@@ -49,7 +51,7 @@ func TestGroupPresetGoLabelPreservesPanicLabel(t *testing.T) {
 		}),
 	)
 
-	preset.GoLabel("worker-a", func() error {
+	preset.GoLabel(context.Background(), "worker-a", func() error {
 		panic("boom")
 	})
 
@@ -113,7 +115,7 @@ func TestNilGroupPresetGoRunsTask(t *testing.T) {
 	var preset *GroupPreset
 
 	taskDone := make(chan struct{})
-	preset.Go(func() error {
+	preset.Go(context.Background(), func() error {
 		close(taskDone)
 		return nil
 	})
@@ -129,7 +131,7 @@ func TestNilGroupPresetGoLabelRunsTask(t *testing.T) {
 	var preset *GroupPreset
 
 	taskDone := make(chan struct{})
-	preset.GoLabel("worker-a", func() error {
+	preset.GoLabel(context.Background(), "worker-a", func() error {
 		close(taskDone)
 		return nil
 	})
@@ -138,5 +140,113 @@ func TestNilGroupPresetGoLabelRunsTask(t *testing.T) {
 	case <-taskDone:
 	case <-time.After(1 * time.Second):
 		t.Fatal("task did not run")
+	}
+}
+
+func TestGroupPresetGoPassesContextToErrorHook(t *testing.T) {
+	const key contextKey = "request-id"
+
+	hookValue := make(chan string, 1)
+	preset := NewGroupPreset(
+		CancelOnError(false),
+		OnErrorWithContext(func(ctx context.Context, _ error) {
+			value, _ := ctx.Value(key).(string)
+			hookValue <- value
+		}),
+	)
+
+	ctx := context.WithValue(context.Background(), key, "req-1")
+	preset.Go(ctx, func() error {
+		return errors.New("task failed")
+	})
+
+	select {
+	case value := <-hookValue:
+		if value != "req-1" {
+			t.Fatalf("unexpected context value: %q", value)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("error hook was not called")
+	}
+}
+
+func TestGroupPresetGoLabelPassesContextToPanicHook(t *testing.T) {
+	const key contextKey = "request-id"
+
+	hookValue := make(chan string, 1)
+	preset := NewGroupPreset(
+		CaptureStack(false),
+		OnPanicWithContext(func(ctx context.Context, _ *PanicError) {
+			value, _ := ctx.Value(key).(string)
+			hookValue <- value
+		}),
+	)
+
+	ctx := context.WithValue(context.Background(), key, "req-2")
+	preset.GoLabel(ctx, "worker-a", func() error {
+		panic("boom")
+	})
+
+	select {
+	case value := <-hookValue:
+		if value != "req-2" {
+			t.Fatalf("unexpected context value: %q", value)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("panic hook was not called")
+	}
+}
+
+func TestGroupPresetGoContextPassesContextToErrorHook(t *testing.T) {
+	const key contextKey = "request-id"
+
+	hookValue := make(chan string, 1)
+	preset := NewGroupPreset(
+		CancelOnError(false),
+		OnErrorWithContext(func(ctx context.Context, _ error) {
+			value, _ := ctx.Value(key).(string)
+			hookValue <- value
+		}),
+	)
+
+	ctx := context.WithValue(context.Background(), key, "req-ctx-1")
+	preset.GoContext(ctx, func(context.Context) error {
+		return errors.New("task failed")
+	})
+
+	select {
+	case value := <-hookValue:
+		if value != "req-ctx-1" {
+			t.Fatalf("unexpected context value: %q", value)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("error hook was not called")
+	}
+}
+
+func TestGroupPresetGoLabelContextPassesContextToPanicHook(t *testing.T) {
+	const key contextKey = "request-id"
+
+	hookValue := make(chan string, 1)
+	preset := NewGroupPreset(
+		CaptureStack(false),
+		OnPanicWithContext(func(ctx context.Context, _ *PanicError) {
+			value, _ := ctx.Value(key).(string)
+			hookValue <- value
+		}),
+	)
+
+	ctx := context.WithValue(context.Background(), key, "req-ctx-2")
+	preset.GoLabelContext(ctx, "worker-a", func(context.Context) error {
+		panic("boom")
+	})
+
+	select {
+	case value := <-hookValue:
+		if value != "req-ctx-2" {
+			t.Fatalf("unexpected context value: %q", value)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("panic hook was not called")
 	}
 }

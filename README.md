@@ -64,8 +64,8 @@ func main() {
 - Constructor: `WithContext`
 - Preset: `NewGroupPreset`, `GroupPreset.Group`
 - Task APIs: `Go`, `GoLabel`, `TryGo`, `TryGoLabel`, `SetLimit`
-- Detached task APIs: `GroupPreset.Go`, `GroupPreset.GoLabel`
-- Package helper APIs: `DefaultPreset`, `safegroup.Go`, `safegroup.GoLabel`
+- Detached task APIs: `GroupPreset.Go`, `GroupPreset.GoContext`, `GroupPreset.GoLabel`, `GroupPreset.GoLabelContext`
+- Package helper APIs: `DefaultPreset`, `safegroup.Go`, `safegroup.GoContext`, `safegroup.GoLabel`, `safegroup.GoLabelContext`
 - Result APIs: `Wait`, `Errors`, `Panics`
 - Panic helpers: `IsPanic`, `AsPanic`, `AllPanics`
 
@@ -96,8 +96,13 @@ preset := safegroup.NewGroupPreset(
 	safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
 )
 
-preset.Go(func() error {
+preset.Go(ctx, func() error {
 	// detached async work
+	return nil
+})
+
+preset.GoContext(ctx, func(ctx context.Context) error {
+	_ = ctx
 	return nil
 })
 
@@ -114,13 +119,26 @@ For the most minimal detached use, call package-level helpers:
 ```go
 safegroup.DefaultPreset.
 	WithOptions(
-		safegroup.OnError(func(err error) { log.Printf("task error: %v", err) }),
+		safegroup.OnErrorWithContext(func(ctx context.Context, err error) {
+			requestID, _ := ctx.Value("request-id").(string)
+			log.Printf("request_id=%s task error: %v", requestID, err)
+		}),
 		safegroup.OnPanic(func(pe *safegroup.PanicError) { log.Printf("panic: %+v", pe) }),
 	)
 
-safegroup.Go(func() error {
-	return nil
+reqCtx := context.WithValue(context.Background(), "request-id", "req-1")
+safegroup.Go(reqCtx, func() error {
+	return errors.New("failed")
 })
+
+safegroup.GoLabel(reqCtx, "worker-a", func() error {
+	return errors.New("failed again")
+})
+
+safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
+	return errors.New("failed with context")
+})
+// OnErrorWithContext can read request-id from this context and include it in logs.
 ```
 
 ## PanicError

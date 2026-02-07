@@ -37,34 +37,63 @@ func (p *GroupPreset) Group(ctx context.Context) (*Group, context.Context) {
 	return WithContext(ctx, opts...)
 }
 
-// Go starts one detached task using the preset's configured options.
+// Go starts one detached task using the preset's configured options and the
+// provided parent context.
 //
-// The task does not receive context.Context. If you need cancellation or
-// deadlines in task code, create a Group through Group(ctx) and use Group.Go.
+// The task does not receive context.Context. Use GoContext when task code
+// needs the derived context directly.
 //
 // This method returns immediately.
 // When p is nil, this method uses default options.
-func (p *GroupPreset) Go(task func() error) {
-	p.GoLabel("", task)
+func (p *GroupPreset) Go(ctx context.Context, task func() error) {
+	p.GoLabel(ctx, "", task)
+}
+
+// GoContext starts one detached task using the preset's configured options and
+// the provided parent context.
+//
+// The task receives the group's derived context.
+//
+// This method returns immediately.
+// When p is nil, this method uses default options.
+func (p *GroupPreset) GoContext(ctx context.Context, task func(context.Context) error) {
+	p.GoLabelContext(ctx, "", task)
 }
 
 // GoLabel starts one detached labeled task using the preset's configured
-// options.
+// options and the provided parent context.
 //
-// The task does not receive context.Context. If you need cancellation or
-// deadlines in task code, create a Group through Group(ctx) and use Group.Go.
+// The task does not receive context.Context. Use GoLabelContext when task code
+// needs the derived context directly.
 //
 // This method returns immediately.
 // When p is nil, this method uses default options.
-func (p *GroupPreset) GoLabel(label string, task func() error) {
+func (p *GroupPreset) GoLabel(ctx context.Context, label string, task func() error) {
 	if task == nil {
 		panic("safegroup: nil task")
 	}
-
-	group, _ := p.Group(context.Background())
-	group.GoLabel(label, func(context.Context) error {
+	p.GoLabelContext(ctx, label, func(context.Context) error {
 		return task()
 	})
+}
+
+// GoLabelContext starts one detached labeled task using the preset's
+// configured options and the provided parent context.
+//
+// The task receives the group's derived context.
+//
+// This method returns immediately.
+// When p is nil, this method uses default options.
+func (p *GroupPreset) GoLabelContext(ctx context.Context, label string, task func(context.Context) error) {
+	if task == nil {
+		panic("safegroup: nil task")
+	}
+	if ctx == nil {
+		panic("safegroup: nil context")
+	}
+
+	group, _ := p.Group(ctx)
+	group.GoLabel(label, task)
 	go func() {
 		_ = group.Wait()
 	}()
