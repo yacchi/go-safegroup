@@ -5,6 +5,8 @@ import "context"
 // DefaultPreset is used by package-level Go and GoLabel helpers.
 //
 // Configure it with WithXXX methods when you need non-default behavior.
+// Replacing this global variable while tasks are running can race; configure
+// it during initialization/startup before concurrent use.
 var DefaultPreset = NewGroupPreset()
 
 // DefaultGroup creates a new Group using DefaultPreset and the provided parent

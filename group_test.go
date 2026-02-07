@@ -231,6 +231,33 @@ func TestOnErrorWithContextRunsBeforeSelfCancel(t *testing.T) {
 	}
 }
 
+func TestOnPanicWithContextRunsBeforeSelfCancel(t *testing.T) {
+	hookCtxErr := make(chan error, 1)
+	group, _ := WithContext(
+		context.Background(),
+		CancelOnPanic(true),
+		OnPanicWithContext(func(ctx context.Context, _ *PanicError) {
+			hookCtxErr <- ctx.Err()
+		}),
+	)
+
+	group.Go(func(context.Context) error {
+		panic("task panic")
+	})
+	if err := group.Wait(); err == nil {
+		t.Fatal("expected joined error")
+	}
+
+	select {
+	case err := <-hookCtxErr:
+		if err != nil {
+			t.Fatalf("expected hook context not canceled by same panic yet, got %v", err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("panic hook was not called")
+	}
+}
+
 func TestOnErrorPanicIsNotRecovered(t *testing.T) {
 	group, _ := WithContext(
 		context.Background(),

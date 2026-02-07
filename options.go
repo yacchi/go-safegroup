@@ -52,6 +52,8 @@ func CaptureStack(enabled bool) Option {
 }
 
 // OnPanic registers a hook called when a task panic is recovered.
+// This option and OnPanicWithContext configure the same panic hook; the later
+// applied option wins.
 //
 // Panics in the hook itself are not recovered by Group.
 func OnPanic(fn func(*PanicError)) Option {
@@ -78,6 +80,10 @@ func OnError(fn func(error)) Option {
 // OnPanicWithContext registers a hook called when a task panic is recovered.
 // The hook receives the group's derived context, not the task's input context.
 // It may already be canceled when another task has triggered cancellation.
+// This option and OnPanic configure the same panic hook; the later applied
+// option wins.
+// When CancelOnPanic(true) is enabled, this hook runs before cancellation
+// triggered by that same panic; a slow hook delays that cancellation.
 //
 // Panics in the hook itself are not recovered by Group.
 func OnPanicWithContext(fn func(context.Context, *PanicError)) Option {

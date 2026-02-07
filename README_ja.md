@@ -165,6 +165,7 @@ safegroup.GoLabelContext(reqCtx, "worker-b", func(context.Context) error {
 - `runtime.Goexit` は `recover` でリカバリできないため、サポート対象外です。
 - このパッケージ自体はログを出力しません。メトリクスやログには `OnError` / `OnPanic` フックを使用してください。
 - `CancelOnError(true)` / `CancelOnPanic(true)` 有効時、同一失敗が引き起こすキャンセルより前にフックが呼ばれます。
+- フックが重い処理を行う場合、同一失敗に対するキャンセル伝播が遅れる可能性があります。
 - `SetLimit` 使用時の `GoLabel` は、スロットが空くかグループコンテキストがキャンセルされるまで待機します。待機中にキャンセルされた場合、タスクは起動されません。
 - `Wait` は複数回呼び出せます。各呼び出しは一貫した失敗スナップショットを返します。
 - `Wait` はグループの終端操作です。`Wait` の返却後は `Go`/`GoLabel` は panic し、`TryGo`/`TryGoLabel` は `false` を返します。
